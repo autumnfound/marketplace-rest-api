@@ -85,7 +85,7 @@ public class CatalogResource {
 	 * @return response for the browser
 	 */
 	@PUT
-	@RolesAllowed({ "marketplace_catalog_put", "marketplace_admin_access" })
+	@PermitAll
 	public Response putCatalog(Catalog catalog) {
 		if (catalog.getId() != null) {
 			params.addParam(UrlParameterNames.ID, catalog.getId());

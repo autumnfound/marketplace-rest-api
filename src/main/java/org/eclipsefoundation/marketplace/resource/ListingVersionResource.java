@@ -10,7 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import javax.annotation.security.RolesAllowed;
+import javax.annotation.security.PermitAll;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -85,6 +85,7 @@ public class ListingVersionResource {
 	 * @return response for the browser
 	 */
 	@PUT
+	@PermitAll
 	public Response putListingVersion(ListingVersion listingVersion) {
 		if (listingVersion.getId() != null) {
 			params.addParam(UrlParameterNames.ID, listingVersion.getId());
@@ -130,7 +131,6 @@ public class ListingVersionResource {
 	 * @return response for the browser
 	 */
 	@DELETE
-	@RolesAllowed({ "marketplace_version_delete", "marketplace_admin_access" })
 	@Path("/{listingVersionId}")
 	public Response delete(@PathParam("listingVersionId") String listingVersionId) {
 		params.addParam(UrlParameterNames.ID, listingVersionId);

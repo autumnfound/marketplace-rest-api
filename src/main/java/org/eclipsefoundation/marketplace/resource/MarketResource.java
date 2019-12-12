@@ -85,7 +85,7 @@ public class MarketResource {
 	 * @return response for the browser
 	 */
 	@PUT
-	@RolesAllowed({ "marketplace_market_put", "marketplace_admin_access" })
+	@PermitAll
 	public Response putMarket(Market market) {
 		if (market.getId() != null) {
 			params.addParam(UrlParameterNames.ID, market.getId());

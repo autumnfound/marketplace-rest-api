@@ -85,7 +85,7 @@ public class CategoryResource {
 	 * @return response for the browser
 	 */
 	@PUT
-	@RolesAllowed({"marketplace_category_put", "marketplace_admin_access"})
+	@PermitAll
 	public Response putCategory(Category category) {
 		if (category.getId() != null) {
 			params.addParam(UrlParameterNames.ID, category.getId());

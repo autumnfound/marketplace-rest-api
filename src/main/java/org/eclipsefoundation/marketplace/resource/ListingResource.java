@@ -96,7 +96,7 @@ public class ListingResource {
 	 * @return response for the browser
 	 */
 	@PUT
-	@RolesAllowed({ "marketplace_listing_put", "marketplace_admin_access" })
+	@PermitAll
 	public Response putListing(Listing listing) {
 		if (listing.getId() != null) {
 			params.addParam(UrlParameterNames.ID, listing.getId());
