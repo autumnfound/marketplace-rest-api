@@ -18,8 +18,8 @@ import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipsefoundation.marketplace.model.RequestWrapper;
-import org.eclipsefoundation.marketplace.service.CachingService;
+import org.eclipsefoundation.core.model.RequestWrapper;
+import org.eclipsefoundation.core.service.CachingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

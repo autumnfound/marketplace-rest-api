@@ -6,45 +6,46 @@
  */
 package org.eclipsefoundation.marketplace.dto.filter;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
-import org.bson.conversions.Bson;
+import org.eclipsefoundation.core.model.RequestWrapper;
 import org.eclipsefoundation.marketplace.dto.Category;
-import org.eclipsefoundation.marketplace.model.RequestWrapper;
 import org.eclipsefoundation.marketplace.namespace.DatabaseFieldNames;
+import org.eclipsefoundation.marketplace.namespace.DtoTableNames;
 import org.eclipsefoundation.marketplace.namespace.UrlParameterNames;
-
-import com.mongodb.client.model.Filters;
+import org.eclipsefoundation.persistence.dto.filter.DtoFilter;
+import org.eclipsefoundation.persistence.model.ParameterizedSQLStatement;
+import org.eclipsefoundation.persistence.model.ParameterizedSQLStatementBuilder;
 
 /**
- * @author martin
- *
+ * Filter implementation for the Category class.
+ * 
+ * @author Martin Lowe
  */
 @ApplicationScoped
 public class CategoryFilter implements DtoFilter<Category> {
 
+	@Inject
+	ParameterizedSQLStatementBuilder builder;
+	
+
 	@Override
-	public List<Bson> getFilters(RequestWrapper wrap, String root) {
-		List<Bson> filters = new ArrayList<>();
-		// perform following checks only if there is no doc root
-		if (root == null) {
+	public ParameterizedSQLStatement getFilters(RequestWrapper wrap, boolean isRoot) {
+		ParameterizedSQLStatement stmt = builder.build(DtoTableNames.CATEGORY.getTable());
+		if (isRoot) {
 			// ID check
 			Optional<String> id = wrap.getFirstParam(UrlParameterNames.ID);
 			if (id.isPresent()) {
-				filters.add(Filters.eq(DatabaseFieldNames.DOCID, id.get()));
+				stmt.addClause(new ParameterizedSQLStatement.Clause(
+						DtoTableNames.CATEGORY.getAlias() + "." + DatabaseFieldNames.DOCID + " = ?",
+						new Object[] { UUID.fromString(id.get()) }));
 			}
 		}
-		return filters;
-	}
-
-	@Override
-	public List<Bson> getAggregates(RequestWrapper wrap) {
-		return Collections.emptyList();
+		return stmt;
 	}
 
 	@Override

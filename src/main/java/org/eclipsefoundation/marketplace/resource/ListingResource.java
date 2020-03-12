@@ -17,6 +17,7 @@ import javax.annotation.security.PermitAll;
 import javax.annotation.security.RolesAllowed;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
+import javax.persistence.NoResultException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -25,23 +26,18 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 
-import org.eclipsefoundation.marketplace.dao.MongoDao;
+import org.eclipsefoundation.core.helper.ResponseHelper;
+import org.eclipsefoundation.core.model.RequestWrapper;
+import org.eclipsefoundation.core.service.CachingService;
 import org.eclipsefoundation.marketplace.dto.Listing;
-import org.eclipsefoundation.marketplace.dto.filter.DtoFilter;
-import org.eclipsefoundation.marketplace.helper.ResponseHelper;
-import org.eclipsefoundation.marketplace.helper.StreamHelper;
-import org.eclipsefoundation.marketplace.model.Error;
-import org.eclipsefoundation.marketplace.model.MongoQuery;
-import org.eclipsefoundation.marketplace.model.RequestWrapper;
 import org.eclipsefoundation.marketplace.namespace.UrlParameterNames;
-import org.eclipsefoundation.marketplace.service.CachingService;
+import org.eclipsefoundation.persistence.dao.PersistenceDao;
+import org.eclipsefoundation.persistence.dto.filter.DtoFilter;
+import org.eclipsefoundation.persistence.model.RDBMSQuery;
 import org.jboss.resteasy.annotations.jaxrs.PathParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.mongodb.client.result.DeleteResult;
 
 /**
  * Resource for retrieving listings from the MongoDB instance.
@@ -56,7 +52,7 @@ public class ListingResource {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ListingResource.class);
 
 	@Inject
-	MongoDao dao;
+	PersistenceDao dao;
 	@Inject
 	CachingService<List<Listing>> cachingService;
 	@Inject
@@ -76,10 +72,9 @@ public class ListingResource {
 	@GET
 	@PermitAll
 	public Response select() {
-		MongoQuery<Listing> q = new MongoQuery<>(params, dtoFilter);
 		// retrieve the possible cached object
 		Optional<List<Listing>> cachedResults = cachingService.get("all", params,
-				() -> StreamHelper.awaitCompletionStage(dao.get(q)));
+				() -> dao.get(new RDBMSQuery<>(params, dtoFilter)));
 		if (!cachedResults.isPresent()) {
 			LOGGER.error("Error while retrieving cached listings");
 			return Response.serverError().build();
@@ -98,13 +93,8 @@ public class ListingResource {
 	@PUT
 	@RolesAllowed({ "marketplace_listing_put", "marketplace_admin_access" })
 	public Response putListing(Listing listing) {
-		if (listing.getId() != null) {
-			params.addParam(UrlParameterNames.ID, listing.getId());
-		}
-		MongoQuery<Listing> q = new MongoQuery<>(params, dtoFilter);
-
 		// add the object, and await the result
-		StreamHelper.awaitCompletionStage(dao.add(q, Arrays.asList(listing)));
+		dao.add(new RDBMSQuery<>(params, dtoFilter), Arrays.asList(listing));
 
 		// return the results as a response
 		return Response.ok().build();
@@ -123,15 +113,16 @@ public class ListingResource {
 	public Response select(@PathParam("listingId") String listingId) {
 		params.addParam(UrlParameterNames.ID, listingId);
 
-		MongoQuery<Listing> q = new MongoQuery<>(params, dtoFilter);
 		// retrieve a cached version of the value for the current listing
 		Optional<List<Listing>> cachedResults = cachingService.get(listingId, params,
-				() -> StreamHelper.awaitCompletionStage(dao.get(q)));
+				() -> dao.get(new RDBMSQuery<>(params, dtoFilter)));
 		if (!cachedResults.isPresent()) {
 			LOGGER.error("Error while retrieving cached listing for ID {}", listingId);
 			return Response.serverError().build();
 		}
-
+		if (cachedResults.get().isEmpty()) {
+			throw new NoResultException("Could not find any documents with ID " + listingId);
+		}
 		// return the results as a response
 		return responseBuider.build(listingId, params, cachedResults.get());
 	}
@@ -148,12 +139,8 @@ public class ListingResource {
 	@Path("/{listingId}")
 	public Response delete(@PathParam("listingId") String listingId) {
 		params.addParam(UrlParameterNames.ID, listingId);
-		MongoQuery<Listing> q = new MongoQuery<>(params, dtoFilter);
 		// delete the currently selected asset
-		DeleteResult result = StreamHelper.awaitCompletionStage(dao.delete(q));
-		if (result.getDeletedCount() == 0 || !result.wasAcknowledged()) {
-			return new Error(Status.NOT_FOUND, "Did not find an asset to delete for current call").asResponse();
-		}
+		dao.delete(new RDBMSQuery<>(params, dtoFilter));
 		// return the results as a response
 		return Response.ok().build();
 	}
